@@ -9,6 +9,9 @@
       <div class="user-stats">
         積分: {{ climbingStore.userStats.points }} | 
         抽獎券: {{ climbingStore.userTickets }}
+        <span v-if="climbingStore.userStats.lotteryWins > 0" class="user-wins">
+          | 🏆 {{ climbingStore.userStats.lotteryWins }}次中獎
+        </span>
       </div>
     </div>
     <button class="logout-btn" @click="handleLogout">
@@ -74,6 +77,11 @@ const handleLogout = async () => {
 .user-stats {
   font-size: 0.9em;
   color: #666;
+}
+
+.user-wins {
+  color: #ffc107;
+  font-weight: bold;
 }
 
 .logout-btn {

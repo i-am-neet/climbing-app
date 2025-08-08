@@ -5,6 +5,19 @@
       <div class="lottery-desc">每{{ pointsPerTicket }}分可兌換1張抽獎券</div>
     </div>
     
+    <!-- 開發模式 Mock 登入 -->
+    <div v-if="isDevelopmentMode" class="dev-login-section">
+      <button 
+        class="btn login-btn btn-dev"
+        @click="handleMockLogin"
+        :disabled="authStore.loading"
+      >
+        <span class="provider-icon">🔧</span>
+        <span class="provider-text">開發模式登入</span>
+      </button>
+      <div class="dev-note">⚠️ 僅限開發環境使用</div>
+    </div>
+
     <!-- 動態登入按鈕 -->
     <div class="login-providers">
       <!-- Google 登入 (預設) -->
@@ -102,6 +115,19 @@ const isDevelopmentMode = computed(() => import.meta.env.DEV)
 const enableFacebook = computed(() => import.meta.env.VITE_ENABLE_FACEBOOK_AUTH === 'true')
 const enableGithub = computed(() => import.meta.env.VITE_ENABLE_GITHUB_AUTH === 'true')
 const enableTwitter = computed(() => import.meta.env.VITE_ENABLE_TWITTER_AUTH === 'true')
+
+// Mock 登入 (僅開發模式)
+const handleMockLogin = async () => {
+  if (!isDevelopmentMode.value) return
+  
+  try {
+    console.log('使用開發模式 Mock 登入')
+    await authStore.mockSignIn()
+  } catch (error) {
+    console.error('Mock 登入錯誤:', error)
+    alert(error.message || 'Mock 登入失敗')
+  }
+}
 
 // 處理任何提供商的登入
 const handleProviderLogin = async (providerId) => {
@@ -267,6 +293,36 @@ const handleProviderLogin = async (providerId) => {
   border-radius: 8px;
   margin-top: 15px;
   color: #666;
+}
+
+/* 開發模式 Mock 登入 */
+.dev-login-section {
+  background: #fff3cd;
+  border: 2px dashed #ffc107;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.btn-dev {
+  background: linear-gradient(45deg, #ffc107, #fd7e14) !important;
+  color: #000 !important;
+  border: none !important;
+  font-weight: bold;
+}
+
+.btn-dev:hover:not(:disabled) {
+  background: linear-gradient(45deg, #e0a800, #e8690b) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+}
+
+.dev-note {
+  font-size: 0.8em;
+  color: #856404;
+  margin-top: 8px;
+  font-style: italic;
 }
 
 /* 開發者模式樣式 */

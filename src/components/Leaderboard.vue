@@ -25,6 +25,9 @@
           <div class="member-stats">
             <div class="member-points">{{ user.points }}分</div>
             <div class="member-tickets">{{ getTickets(user.points) }}券</div>
+            <div v-if="user.lotteryWins > 0" class="member-wins">
+              🏆 {{ user.lotteryWins }}次
+            </div>
           </div>
         </div>
       </div>
@@ -135,5 +138,15 @@ onMounted(async () => {
   padding: 2px 6px;
   border-radius: 8px;
   font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.member-wins {
+  background: #ffc107;
+  color: #000;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.8em;
 }
 </style>

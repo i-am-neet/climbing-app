@@ -44,11 +44,27 @@ remoteConfig.defaultConfig = {
 export const initRemoteConfig = async () => {
   try {
     console.log('開始 fetch Remote Config...')
-    await fetchAndActivate(remoteConfig)
+    console.log('Remote Config 預設值:', remoteConfig.defaultConfig)
+    
+    const success = await fetchAndActivate(remoteConfig)
+    console.log('Remote Config fetch 結果:', success)
+    
+    // 測試讀取值
+    const testValue = remoteConfig.getValue("POINTS_PER_TICKET")
+    console.log('測試讀取 POINTS_PER_TICKET:', testValue)
+    console.log('Value source:', testValue.getSource())
+    console.log('Value as number:', testValue.asNumber())
+    
     console.log('Remote Config fetch 成功')
     return true
   } catch (error) {
     console.warn('Remote Config fetch 失敗，使用預設值:', error)
+    console.log('嘗試使用預設值...')
+    
+    // 即使 fetch 失敗，預設值應該還是可以用
+    const defaultValue = remoteConfig.getValue("POINTS_PER_TICKET")
+    console.log('預設值測試:', defaultValue.asNumber())
+    
     return false
   }
 }

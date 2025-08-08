@@ -148,8 +148,55 @@ export const useAuthStore = defineStore('auth', () => {
     return await signInWithProvider('google')
   }
   
+  // Mock 登入 (僅開發模式)
+  const mockSignIn = async () => {
+    if (import.meta.env.PROD) {
+      throw new Error('Mock 登入僅限開發環境使用')
+    }
+    
+    loading.value = true
+    
+    try {
+      // 創建 Mock 用戶物件
+      const mockUser = {
+        uid: 'mock-user-' + Date.now(),
+        email: 'dev@example.com',
+        displayName: '開發測試用戶',
+        photoURL: 'https://via.placeholder.com/150?text=DEV',
+        emailVerified: true,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString()
+        }
+      }
+      
+      user.value = mockUser
+      currentProvider.value = 'mock'
+      
+      console.log('Mock 登入成功:', mockUser)
+      
+      return {
+        user: mockUser,
+        credential: null,
+        provider: 'mock'
+      }
+    } catch (error) {
+      console.error('Mock 登入失敗:', error)
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
   const logout = async () => {
     try {
+      // 如果是 Mock 用戶，直接清除
+      if (currentProvider.value === 'mock') {
+        user.value = null
+        currentProvider.value = null
+        return
+      }
+      
       await signOut(auth)
       user.value = null
       currentProvider.value = null
@@ -176,6 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
     // Actions
     signInWithProvider,
     signInWithGoogle, // 保持向後相容
+    mockSignIn, // Mock 登入
     logout,
     setUser,
     // Helper functions
