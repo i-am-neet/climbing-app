@@ -2,6 +2,8 @@ import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
+import { getFunctions } from 'firebase/functions'
+import { getRemoteConfig, fetchAndActivate } from "firebase/remote-config"
 
 const firebaseConfig = {
   apiKey: "AIzaSyDdagVzU1epsKnQ1wobHE75Ybvivp0V6tQ",
@@ -20,4 +22,33 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
+export const functions = getFunctions(app)
+export const remoteConfig = getRemoteConfig(app)
 export default app
+
+// Remote Config 設定
+remoteConfig.settings.minimumFetchIntervalMillis = 0
+
+// 設定預設值
+remoteConfig.defaultConfig = {
+  "POINTS_PER_TICKET": 10,
+  "SCORE_BOARD": JSON.stringify([
+    { grade: 'VB-V1', points: 2 },
+    { grade: 'V2-V3', points: 3 },
+    { grade: 'V4-V5', points: 5 },
+    { grade: 'V6+', points: 8 }
+  ])
+}
+
+// 初始化 Remote Config 並嘗試 fetch
+export const initRemoteConfig = async () => {
+  try {
+    console.log('開始 fetch Remote Config...')
+    await fetchAndActivate(remoteConfig)
+    console.log('Remote Config fetch 成功')
+    return true
+  } catch (error) {
+    console.warn('Remote Config fetch 失敗，使用預設值:', error)
+    return false
+  }
+}

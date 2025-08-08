@@ -2,7 +2,7 @@
   <div class="login-section">
     <div class="lottery-info">
       <div class="lottery-title">🎟️ 抽獎規則</div>
-      <div class="lottery-desc">每10分可兌換1張抽獎券</div>
+      <div class="lottery-desc">每{{ pointsPerTicket }}分可兌換1張抽獎券</div>
     </div>
     
     <!-- 動態登入按鈕 -->
@@ -82,10 +82,18 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth.js'
+import { useClimbingStore } from '../stores/climbing.js'
 
 const authStore = useAuthStore()
+const climbingStore = useClimbingStore()
+
+const pointsPerTicket = computed(() => climbingStore.POINTS_PER_TICKET)
+
+onMounted(async () => {
+  await climbingStore.initializeConfig()
+})
 
 // 檢查是否為開發模式
 const isDevelopmentMode = computed(() => import.meta.env.DEV)

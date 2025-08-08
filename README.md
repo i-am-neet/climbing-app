@@ -127,7 +127,7 @@ VITE_ENABLE_TWITTER_AUTH=false    # Twitter 登入
 - 團體挑戰完成 (+3分)
 
 ### 抽獎券
-- 每10分可兌換1張抽獎券
+- 每{POINTS_PER_TICKET}分可兌換1張抽獎券
 
 ## 🐛 VS Code Debug 設定
 

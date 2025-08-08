@@ -16,6 +16,8 @@ import {
 } from 'firebase/firestore'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAuthStore } from './auth.js'
+import { remoteConfig, initRemoteConfig } from '../firebase.js'
+import { getValue } from "firebase/remote-config"
 
 export const useClimbingStore = defineStore('climbing', () => {
   // State
@@ -33,28 +35,70 @@ export const useClimbingStore = defineStore('climbing', () => {
   
   const leaderboard = ref([])
   const loading = ref(false)
+  const configLoaded = ref(false)
   
-  // Constants
-  const POINTS_PER_TICKET = 10
+  // Reactive constants that update when Remote Config is loaded
+  const POINTS_PER_TICKET = computed(() => {
+    if (!configLoaded.value) return 10
+    try {
+      return getValue(remoteConfig, "POINTS_PER_TICKET").asNumber() || 10
+    } catch (error) {
+      console.warn('無法載入 POINTS_PER_TICKET 設定，使用預設值:', error)
+      return 10
+    }
+  })
   
-  const gradeOptions = [
-    { grade: 'VB-V1', points: 2 },
-    { grade: 'V2-V3', points: 3 },
-    { grade: 'V4-V5', points: 5 },
-    { grade: 'V6+', points: 8 }
-  ]
+  const gradeOptions = computed(() => {
+    if (!configLoaded.value) {
+      return [
+        { grade: 'VB-V1', points: 2 },
+        { grade: 'V2-V3', points: 3 },
+        { grade: 'V4-V5', points: 5 },
+        { grade: 'V6+', points: 8 }
+      ]
+    }
+    
+    try {
+      const valScoreBoard = getValue(remoteConfig, "SCORE_BOARD").asString()
+      if (valScoreBoard && valScoreBoard.trim()) {
+        return JSON.parse(valScoreBoard)
+      } else {
+        throw new Error('SCORE_BOARD 設定為空')
+      }
+    } catch (err) {
+      console.warn("無法載入 SCORE_BOARD 設定，使用預設值:", err)
+      return [
+        { grade: 'VB-V1', points: 2 },
+        { grade: 'V2-V3', points: 3 },
+        { grade: 'V4-V5', points: 5 },
+        { grade: 'V6+', points: 8 }
+      ]
+    }
+  })
+  
+  // Initialize Remote Config
+  const initializeConfig = async () => {
+    try {
+      await initRemoteConfig()
+      configLoaded.value = true
+      console.log('Remote Config 初始化完成')
+    } catch (error) {
+      console.warn('Remote Config 初始化失敗:', error)
+      configLoaded.value = true // 仍然設為 true 以使用預設值
+    }
+  }
   
   const extraPointsOptions = [
-    { id: 'photo', label: '拍攝他人抱石瞬間', points: 1 },
-    { id: 'share', label: '分享心得或技巧', points: 1 },
-    { id: 'help', label: '協助其他社員', points: 1 },
-    { id: 'clean', label: '清潔岩點/整理裝備', points: 1 },
-    { id: 'social', label: '社群打卡分享', points: 1 },
-    { id: 'team', label: '團體挑戰完成', points: 3 }
+    // { id: 'photo', label: '拍攝他人抱石瞬間', points: 1 },
+    // { id: 'share', label: '分享心得或技巧', points: 1 },
+    // { id: 'help', label: '協助其他社員', points: 1 },
+    // { id: 'clean', label: '清潔岩點/整理裝備', points: 1 },
+    // { id: 'social', label: '社群打卡分享', points: 1 },
+    // { id: 'team', label: '團體挑戰完成', points: 3 }
   ]
   
   // Getters
-  const userTickets = computed(() => Math.floor(userStats.value.points / POINTS_PER_TICKET))
+  const userTickets = computed(() => Math.floor(userStats.value.points / POINTS_PER_TICKET.value))
   
   // Actions
   const loadUserData = async () => {
@@ -67,7 +111,7 @@ export const useClimbingStore = defineStore('climbing', () => {
         const userData = userDoc.data()
         userStats.value = {
           points: userData.points || 0,
-          tickets: Math.floor((userData.points || 0) / POINTS_PER_TICKET),
+          tickets: Math.floor((userData.points || 0) / POINTS_PER_TICKET.value),
           routes: userData.routes || []
         }
       } else {
@@ -101,7 +145,7 @@ export const useClimbingStore = defineStore('climbing', () => {
         totalPoints += userData.points || 0
       })
       
-      const totalTickets = Math.floor(totalPoints / POINTS_PER_TICKET)
+      const totalTickets = Math.floor(totalPoints / POINTS_PER_TICKET.value)
       
       globalStats.value = {
         totalMembers: users.length,
@@ -230,7 +274,7 @@ export const useClimbingStore = defineStore('climbing', () => {
         success: true,
         routeRecord,
         totalPoints,
-        ticketsEarned: Math.floor(totalPoints / POINTS_PER_TICKET)
+        ticketsEarned: Math.floor(totalPoints / POINTS_PER_TICKET.value)
       }
       
     } catch (error) {
@@ -247,6 +291,7 @@ export const useClimbingStore = defineStore('climbing', () => {
     globalStats,
     leaderboard,
     loading,
+    configLoaded,
     // Constants
     gradeOptions,
     extraPointsOptions,
@@ -257,6 +302,7 @@ export const useClimbingStore = defineStore('climbing', () => {
     loadUserData,
     loadGlobalStats,
     loadLeaderboard,
-    submitRoute
+    submitRoute,
+    initializeConfig
   }
 })
