@@ -1,6 +1,6 @@
 <template>
   <div class="header">
-    <h1>🧗‍♂️ 攀岩社積分系統</h1>
+    <h1>🧗‍♂️ 台達地下攀岩社積分系統</h1>
     <p>高雄移地訓練兩日活動</p>
   </div>
 </template>

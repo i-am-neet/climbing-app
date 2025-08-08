@@ -11,8 +11,17 @@
         class="route-item"
       >
         <div class="route-header">
-          <span class="route-grade">{{ route.grade }}</span>
-          <span class="route-points">+{{ route.totalPoints }}分</span>
+          <div class="route-info">
+            <span class="route-grade">{{ route.grade }}</span>
+            <span class="route-points">+{{ route.totalPoints }}分</span>
+          </div>
+          <button 
+            class="delete-btn"
+            @click="confirmDelete(route)"
+            title="刪除記錄"
+          >
+            🗑️
+          </button>
         </div>
         <div class="route-name">{{ route.routeName }}</div>
         <div class="route-time">
@@ -54,6 +63,24 @@ const formatDate = (timestamp) => {
 const openImage = (url) => {
   window.open(url, '_blank')
 }
+
+const confirmDelete = (route) => {
+  const confirmed = confirm(`確定要刪除這筆記錄嗎？\n\n等級：${route.grade}\n路線：${route.routeName}\n積分：+${route.totalPoints}分\n時間：${formatDate(route.timestamp)}\n\n※ 此操作無法復原`)
+  
+  if (confirmed) {
+    deleteRoute(route)
+  }
+}
+
+const deleteRoute = async (route) => {
+  try {
+    await climbingStore.deleteRoute(route.id)
+    alert('記錄已刪除')
+  } catch (error) {
+    console.error('刪除失敗:', error)
+    alert('刪除失敗，請再試一次')
+  }
+}
 </script>
 
 <style scoped>
@@ -91,6 +118,30 @@ const openImage = (url) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 5px;
+}
+
+.route-info {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  font-size: 1.1em;
+}
+
+.delete-btn:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.delete-btn:active {
+  background-color: rgba(220, 53, 69, 0.2);
 }
 
 .route-grade {

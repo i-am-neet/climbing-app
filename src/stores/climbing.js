@@ -8,7 +8,8 @@ import {
   updateDoc, 
   getDoc, 
   getDocs, 
-  arrayUnion, 
+  arrayUnion,
+  arrayRemove, 
   increment, 
   serverTimestamp,
   orderBy,
@@ -285,6 +286,42 @@ export const useClimbingStore = defineStore('climbing', () => {
     }
   }
   
+  const deleteRoute = async (routeId) => {
+    const authStore = useAuthStore()
+    if (!authStore.user) throw new Error('請先登入')
+    
+    loading.value = true
+    
+    try {
+      // 找到要刪除的路線
+      const routeToDelete = userStats.value.routes.find(route => route.id === routeId)
+      if (!routeToDelete) {
+        throw new Error('找不到該路線記錄')
+      }
+      
+      // 從 Firestore 更新使用者資料
+      const userRef = doc(db, 'users', authStore.user.uid)
+      
+      // 扣除積分並移除路線記錄
+      await updateDoc(userRef, {
+        points: increment(-routeToDelete.totalPoints),
+        routes: arrayRemove(routeToDelete),
+        updatedAt: serverTimestamp()
+      })
+      
+      // 重新載入資料
+      await loadUserData()
+      
+      return { success: true, deletedPoints: routeToDelete.totalPoints }
+      
+    } catch (error) {
+      console.error('刪除路線失敗:', error)
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+  
   return {
     // State
     userStats,
@@ -303,6 +340,7 @@ export const useClimbingStore = defineStore('climbing', () => {
     loadGlobalStats,
     loadLeaderboard,
     submitRoute,
+    deleteRoute,
     initializeConfig
   }
 })

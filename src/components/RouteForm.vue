@@ -32,22 +32,59 @@
     
     <!-- 照片上傳 -->
     <div class="form-group">
-      <label for="routePhoto">上傳路線照片（選填）</label>
+      <label for="routePhoto">上傳路線照片（必填）<span class="required">*</span></label>
+      
+      <!-- 手機版照片選擇按鈕 -->
+      <div class="photo-upload-options">
+        <button 
+          type="button" 
+          class="photo-option-btn camera-btn"
+          @click="selectPhotoSource('camera')"
+        >
+          📷 拍攝照片
+        </button>
+        <button 
+          type="button" 
+          class="photo-option-btn gallery-btn"
+          @click="selectPhotoSource('gallery')"
+        >
+          🖼️ 選擇相片
+        </button>
+      </div>
+      
+      <!-- 隱藏的文件輸入框 -->
       <input 
+        ref="cameraInput"
         type="file" 
-        id="routePhoto" 
-        accept="image/*" 
+        accept="image/*"
         capture="environment"
+        required
+        style="display: none"
         @change="handlePhotoUpload"
       >
+      <input 
+        ref="galleryInput"
+        type="file" 
+        accept="image/*"
+        required
+        style="display: none"
+        @change="handlePhotoUpload"
+      >
+      
       <div v-if="photoPreview" class="photo-preview">
         <img :src="photoPreview" alt="照片預覽">
         <button type="button" class="remove-photo" @click="removePhoto">✕</button>
       </div>
+      
+      <!-- 上傳提示 -->
+      <div class="upload-hint">
+        📱 手機用戶：可選擇拍攝新照片或從相簿選擇現有照片
+      </div>
     </div>
     
     <!-- 額外積分任務 -->
-    <div class="extra-points">
+    <!--
+    <div v-if="climbingStore.extraPointsOptions.length > 0" class="extra-points">
       <div class="extra-title">額外積分任務 (+1分/項)</div>
       <div class="checkbox-group">
         <div 
@@ -68,14 +105,15 @@
         </div>
       </div>
     </div>
+    -->
     
     <!-- 提交按鈕 -->
     <button 
       class="btn" 
       @click="handleSubmit"
-      :disabled="!selectedGrade || climbingStore.loading"
+      :disabled="!selectedGrade || !photoFile || climbingStore.loading"
     >
-      {{ climbingStore.loading ? submitButtonText : '提交路線記錄' }}
+      {{ climbingStore.loading ? submitButtonText : '提交路線' }}
     </button>
     
     <button 
@@ -91,6 +129,13 @@
     >
       查看排行榜
     </button>
+    
+    <button 
+      class="btn btn-secondary lottery-btn" 
+      @click="toggleLotteryWheel"
+    >
+      🎯 抽獎轉盤
+    </button>
   </div>
 </template>
 
@@ -103,6 +148,7 @@ const climbingStore = useClimbingStore()
 // 從父組件注入的方法
 const toggleRouteHistory = inject('toggleRouteHistory')
 const toggleLeaderboard = inject('toggleLeaderboard')
+const toggleLotteryWheel = inject('toggleLotteryWheel')
 
 // 表單狀態
 const selectedGrade = ref(null)
@@ -111,6 +157,10 @@ const selectedExtraPoints = ref([])
 const photoFile = ref(null)
 const photoPreview = ref('')
 const submitButtonText = ref('提交中...')
+
+// 照片輸入框引用
+const cameraInput = ref(null)
+const galleryInput = ref(null)
 
 // 計算屬性
 const totalPoints = computed(() => {
@@ -125,6 +175,14 @@ const totalPoints = computed(() => {
 // 方法
 const selectGrade = (grade) => {
   selectedGrade.value = grade
+}
+
+const selectPhotoSource = (source) => {
+  if (source === 'camera') {
+    cameraInput.value.click()
+  } else if (source === 'gallery') {
+    galleryInput.value.click()
+  }
 }
 
 const handlePhotoUpload = (event) => {
@@ -143,9 +201,9 @@ const handlePhotoUpload = (event) => {
 const removePhoto = () => {
   photoFile.value = null
   photoPreview.value = ''
-  // 清除 input 的值
-  const photoInput = document.getElementById('routePhoto')
-  if (photoInput) photoInput.value = ''
+  // 清除所有 input 的值
+  if (cameraInput.value) cameraInput.value.value = ''
+  if (galleryInput.value) galleryInput.value.value = ''
 }
 
 const resetForm = () => {
@@ -158,6 +216,11 @@ const resetForm = () => {
 const handleSubmit = async () => {
   if (!selectedGrade.value) {
     alert('請選擇抱石等級！')
+    return
+  }
+  
+  if (!photoFile.value) {
+    alert('請上傳路線照片！')
     return
   }
   
@@ -294,6 +357,59 @@ const handleSubmit = async () => {
   background: rgba(220, 53, 69, 1);
 }
 
+/* 照片上傳選項按鈕 */
+.photo-upload-options {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.photo-option-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.photo-option-btn:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.camera-btn:hover {
+  border-color: #28a745;
+  background: #f8fff9;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.gallery-btn:hover {
+  border-color: #17a2b8;
+  background: #f8fdff;
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.15);
+}
+
+.upload-hint {
+  font-size: 0.85em;
+  color: #666;
+  text-align: center;
+  margin-top: 8px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
 .extra-points {
   background: #fff3cd;
   padding: 15px;
@@ -323,9 +439,53 @@ const handleSubmit = async () => {
   width: auto;
 }
 
+/* 必填欄位樣式 */
+.required {
+  color: #dc3545;
+  font-weight: bold;
+  margin-left: 3px;
+}
+
+/* 檔案輸入框樣式增強 */
+input[type="file"]:required:invalid + .photo-preview::before {
+  content: "⚠️ 請上傳照片";
+  display: block;
+  color: #dc3545;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+/* 抽獎按鈕特殊樣式 */
+.lottery-btn {
+  background: linear-gradient(45deg, #FF6B35, #F7931E) !important;
+  color: white !important;
+  border: none !important;
+  font-weight: bold;
+}
+
+.lottery-btn:hover {
+  background: linear-gradient(45deg, #FF5722, #FF8F00) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+}
+
 @media (max-width: 480px) {
   .grade-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .photo-upload-options {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .photo-option-btn {
+    padding: 10px 12px;
+    font-size: 0.95em;
+  }
+  
+  .upload-hint {
+    font-size: 0.8em;
   }
 }
 </style>
