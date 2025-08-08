@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>攀岩社高雄移地訓練 - 積分系統</title>
+    <meta name="theme-color" content="#667eea">
+    
+    <!-- PWA 支援 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="攀岩積分">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #FF6B35, #F7931E);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        .login-section {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .user-details {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .user-stats {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .logout-btn {
+            padding: 5px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .form-section {
+            padding: 20px;
+        }
+        
+        .section-title {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #333;
+            border-left: 4px solid #FF6B35;
+            padding-left: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .grade-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .grade-card {
+            background: #f8f9fa;
+            padding: 15px 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .grade-card:hover {
+            background: #e9ecef;
+        }
+        
+        .grade-card.selected {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        
+        .grade-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .grade-points {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .photo-preview {
+            margin-top: 10px;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e9ecef;
+            max-width: 200px;
+        }
+        
+        .photo-preview img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .remove-photo {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .remove-photo:hover {
+            background: rgba(220, 53, 69, 1);
+        }
+        
+        .extra-points {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .extra-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .btn-google {
+            background: #4285f4;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-google:hover {
+            background: #3367d6;
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.4);
+        }
+        
+        .leaderboard, .route-history {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .leaderboard h3, .route-history h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .member-item, .route-item {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .member-name {
+            font-weight: 500;
+        }
+        
+        .member-stats {
+            text-align: right;
+            font-size: 0.9em;
+        }
+        
+        .member-points {
+            background: #667eea;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .member-tickets {
+            background: #FF6B35;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .route-photo {
+            margin-top: 8px;
+            border-radius: 6px;
+            overflow: hidden;
+            max-width: 150px;
+        }
+        
+        .route-photo img {
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+        }
+        
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .route-grade {
+            background: #28a745;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .route-points {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .route-name {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .route-time {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 3px;
+        }
+        
+        .lottery-info {
+            background: linear-gradient(45deg, #FF6B35, #F7931E);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .lottery-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .lottery-desc {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @media (max-width: 480px) {
+            .grade-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧗‍♂️ 攀岩社積分系統</h1>
+            <p>高雄移地訓練兩日活動</p>
+        </div>
+        
+        <!-- 登入區域 -->
+        <div id="loginSection" class="login-section">
+            <div class="lottery-info">
+                <div class="lottery-title">🎟️ 抽獎規則</div>
+                <div class="lottery-desc">每10分可兌換1張抽獎券</div>
+            </div>
+            <button class="btn btn-google" onclick="signInWithGoogle()" id="loginBtn">
+                <span>🔐</span>
+                <span>Google 登入</span>
+            </button>
+        </div>
+        
+        <!-- 載入中 -->
+        <div id="loadingSection" class="loading hidden">
+            <div>載入中...</div>
+        </div>
+        
+        <!-- 使用者資訊 -->
+        <div id="userInfo" class="user-info hidden">
+            <div class="user-avatar" id="userAvatar">
+                <span id="userInitial">U</span>
+            </div>
+            <div class="user-details">
+                <div class="user-name" id="userName">使用者</div>
+                <div class="user-stats">
+                    積分: <span id="userPoints">0</span> | 抽獎券: <span id="userTickets">0</span>
+                </div>
+            </div>
+            <button class="logout-btn" onclick="signOut()">登出</button>
+        </div>
+        
+        <div id="mainContent" class="hidden">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalMembers">0</div>
+                    <div class="stat-label">參與人數</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalPoints">0</div>
+                    <div class="stat-label">總積分</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalTickets">0</div>
+                    <div class="stat-label">總抽獎券</div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <div class="section-title">記錄抱石成果</div>
+                
+                <div class="form-group">
+                    <label>選擇完成的抱石等級（單次提交）</label>
+                    <div class="grade-grid">
+                        <div class="grade-card" data-grade="VB-V1" data-points="2">
+                            <div class="grade-name">VB-V1</div>
+                            <div class="grade-points">2分/題</div>
+                        </div>
+                        <div class="grade-card" data-grade="V2-V3" data-points="3">
+                            <div class="grade-name">V2-V3</div>
+                            <div class="grade-points">3分/題</div>
+                        </div>
+                        <div class="grade-card" data-grade="V4-V5" data-points="5">
+                            <div class="grade-name">V4-V5</div>
+                            <div class="grade-points">5分/題</div>
+                        </div>
+                        <div class="grade-card" data-grade="V6+" data-points="8">
+                            <div class="grade-name">V6+</div>
+                            <div class="grade-points">8分/題</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="routeName">路線名稱/編號（選填）</label>
+                    <input type="text" id="routeName" placeholder="例：紅色路線、#15、左側角落路線">
+                </div>
+                
+                <div class="form-group">
+                    <label for="routePhoto">上傳路線照片（選填）</label>
+                    <input type="file" id="routePhoto" accept="image/*" capture="environment">
+                    <div id="photoPreview" class="photo-preview hidden">
+                        <img id="previewImage" src="" alt="照片預覽">
+                        <button type="button" class="remove-photo" onclick="removePhoto()">✕</button>
+                    </div>
+                </div>
+                
+                <div class="extra-points">
+                    <div class="extra-title">額外積分任務 (+1分/項)</div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="photo" value="1">
+                            <label for="photo">拍攝他人抱石瞬間</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="share" value="1">
+                            <label for="share">分享心得或技巧</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="help" value="1">
+                            <label for="help">協助其他社員</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="clean" value="1">
+                            <label for="clean">清潔岩點/整理裝備</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="social" value="1">
+                            <label for="social">社群打卡分享</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="team" value="3">
+                            <label for="team">團體挑戰完成 (+3分)</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="submitRoute()" id="submitBtn">提交路線記錄</button>
+                <button class="btn btn-secondary" onclick="toggleRouteHistory()">查看我的路線記錄</button>
+                <button class="btn btn-secondary" onclick="toggleLeaderboard()">查看排行榜</button>
+            </div>
+            
+            <div class="route-history" id="routeHistory" style="display: none;">
+                <h3>🧗‍♂️ 我的路線記錄</h3>
+                <div id="routeList"></div>
+            </div>
+            
+            <div class="leaderboard" id="leaderboard" style="display: none;">
+                <h3>🏆 積分排行榜</h3>
+                <div id="memberList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyDdagVzU1epsKnQ1wobHE75Ybvivp0V6tQ",
+            authDomain: "climbing-points-system.firebaseapp.com",
+            projectId: "climbing-points-system",
+            storageBucket: "climbing-points-system.firebasestorage.app",
+            messagingSenderId: "582299728579",
+            appId: "1:582299728579:web:d384b6e0906aa801cc4076",
+            measurementId: "G-L01F0018ET"
+        };
+        
+        // 🚨 重要提醒：使用前請務必：
+        // 1. 啟用 Firestore Database
+        // 2. 啟用 Authentication (Google 登入)
+        // 3. 啟用 Storage
+        // 4. 設定安全規則
+        
+        // 初始化 Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        
+        // 全域變數
+        let currentUser = null;
+        let selectedGrade = null;
+        let selectedPoints = 0;
+        let userRoutes = [];
+        let allUsers = [];
+        const POINTS_PER_TICKET = 10;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 檢查 Firebase 配置
+            if (firebaseConfig.apiKey === "your-api-key") {
+                console.error('🚨 請先配置 Firebase 設定！');
+                alert('請先配置 Firebase 設定才能使用應用程式！\n\n請查看程式碼中的 Firebase 配置說明。');
+                return;
+            }
+            
+            // 監聽身份驗證狀態變化
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    showMainContent();
+                    loadUserData();
+                } else {
+                    currentUser = null;
+                    showLoginSection();
+                }
+            });
+            
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // 等級選擇
+            document.querySelectorAll('.grade-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.grade-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedGrade = this.dataset.grade;
+                    selectedPoints = parseInt(this.dataset.points);
+                });
+            });
+            
+            // 照片上傳預覽
+            document.getElementById('routePhoto').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('previewImage').src = e.target.result;
+                        document.getElementById('photoPreview').classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Google 登入
+        async function signInWithGoogle() {
+            try {
+                document.getElementById('loginBtn').disabled = true;
+                document.getElementById('loginBtn').textContent = '登入中...';
+                
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+            } catch (error) {
+                console.error('登入失敗:', error);
+                alert('登入失敗，請再試一次');
+                document.getElementById('loginBtn').disabled = false;
+                document.getElementById('loginBtn').innerHTML = '<span>🔐</span><span>Google 登入</span>';
+            }
+        }
+        
+        // 登出
+        async function signOut() {
+            try {
+                await auth.signOut();
+            } catch (error) {
+                console.error('登出失敗:', error);
+            }
+        }
+        
+        // 顯示登入區域
+        function showLoginSection() {
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
+        }
+        
+        // 顯示主要內容
+        function showMainContent() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('userInfo').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            
+            // 更新使用者資訊顯示
+            document.getElementById('userName').textContent = currentUser.displayName || '使用者';
+            document.getElementById('userInitial').textContent = (currentUser.displayName || 'U').charAt(0);
+            
+            if (currentUser.photoURL) {
+                const img = document.createElement('img');
+                img.src = currentUser.photoURL;
+                img.alt = 'User Avatar';
+                document.getElementById('userAvatar').innerHTML = '';
+                document.getElementById('userAvatar').appendChild(img);
+            }
+        }
+        
+        // 載入使用者資料
+        async function loadUserData() {
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    updateUserStats(userData.points || 0);
+                    userRoutes = userData.routes || [];
+                } else {
+                    // 初次登入，建立使用者資料
+                    await db.collection('users').doc(currentUser.uid).set({
+                        name: currentUser.displayName,
+                        email: currentUser.email,
+                        points: 0,
+                        routes: [],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    updateUserStats(0);
+                }
+                
+                loadGlobalStats();
+            } catch (error) {
+                console.error('載入使用者資料失敗:', error);
+            }
+        }
+        
+        // 更新使用者統計
+        function updateUserStats(points) {
+            const tickets = Math.floor(points / POINTS_PER_TICKET);
+            document.getElementById('userPoints').textContent = points;
+            document.getElementById('userTickets').textContent = tickets;
+        }
+        
+        // 載入全域統計
+        async function loadGlobalStats() {
+            try {
+                const snapshot = await db.collection('users').get();
+                const users = [];
+                let totalPoints = 0;
+                
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    users.push(userData);
+                    totalPoints += userData.points || 0;
+                });
+                
+                const totalTickets = Math.floor(totalPoints / POINTS_PER_TICKET);
+                
+                document.getElementById('totalMembers').textContent = users.length;
+                document.getElementById('totalPoints').textContent = totalPoints;
+                document.getElementById('totalTickets').textContent = totalTickets;
+                
+                allUsers = users;
+            } catch (error) {
+                console.error('載入全域統計失敗:', error);
+            }
+        }
+        
+        // 提交路線記錄
+        async function submitRoute() {
+            // 基本驗證
+            if (!currentUser) {
+                alert('請先登入！');
+                return;
+            }
+            
+            if (!selectedGrade) {
+                alert('請選擇抱石等級！');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+            
+            try {
+                const routeName = document.getElementById('routeName').value.trim();
+                const photoFile = document.getElementById('routePhoto').files[0];
+                
+                // 驗證照片檔案大小 (最大 5MB)
+                if (photoFile && photoFile.size > 5 * 1024 * 1024) {
+                    throw new Error('照片檔案過大，請選擇小於 5MB 的圖片');
+                }
+                
+                // 驗證照片檔案類型
+                if (photoFile && !photoFile.type.startsWith('image/')) {
+                    throw new Error('請選擇有效的圖片檔案');
+                }
+                
+                // 計算積分
+                let totalPoints = selectedPoints;
+                let extraDetails = [];
+                
+                const checkboxes = document.querySelectorAll('.checkbox-item input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    const points = parseInt(cb.value);
+                    totalPoints += points;
+                    extraDetails.push(cb.nextElementSibling.textContent);
+                });
+                
+                // 上傳照片（如果有）
+                let photoURL = null;
+                if (photoFile) {
+                    try {
+                        submitBtn.textContent = '上傳照片中...';
+                        const timestamp = Date.now();
+                        const fileName = `${timestamp}_${photoFile.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                        const photoRef = storage.ref(`users/${currentUser.uid}/routes/${fileName}`);
+                        const uploadTask = await photoRef.put(photoFile);
+                        photoURL = await uploadTask.ref.getDownloadURL();
+                    } catch (uploadError) {
+                        console.error('照片上傳失敗:', uploadError);
+                        throw new Error('照片上傳失敗，請再試一次');
+                    }
+                }
+                
+                submitBtn.textContent = '儲存記錄中...';
+                
+                // 建立路線記錄
+                const routeRecord = {
+                    id: Date.now(),
+                    timestamp: new Date().toISOString(),
+                    grade: selectedGrade,
+                    routeName: routeName || '未命名路線',
+                    gradePoints: selectedPoints,
+                    extraPoints: totalPoints - selectedPoints,
+                    totalPoints: totalPoints,
+                    extraDetails: extraDetails,
+                    photoURL: photoURL,
+                    userId: currentUser.uid,
+                    userEmail: currentUser.email
+                };
+                
+                // 更新 Firestore
+                const userRef = db.collection('users').doc(currentUser.uid);
+                
+                // 先檢查用戶是否存在，不存在則創建
+                const userDoc = await userRef.get();
+                if (!userDoc.exists) {
+                    await userRef.set({
+                        name: currentUser.displayName,
+                        email: currentUser.email,
+                        points: totalPoints,
+                        routes: [routeRecord],
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                } else {
+                    await userRef.update({
+                        points: firebase.firestore.FieldValue.increment(totalPoints),
+                        routes: firebase.firestore.FieldValue.arrayUnion(routeRecord),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                // 重置表單
+                resetForm();
+                
+                // 重新載入資料
+                await loadUserData();
+                
+                // 顯示成功訊息
+                const ticketsEarned = Math.floor(totalPoints / POINTS_PER_TICKET);
+                let message = `🎉 路線記錄成功！\n\n等級：${selectedGrade} (+${selectedPoints}分)\n路線：${routeRecord.routeName}\n總獲得：${totalPoints}分`;
+                
+                if (ticketsEarned > 0) {
+                    message += `\n🎟️ 獲得 ${ticketsEarned} 張抽獎券！`;
+                }
+                
+                if (extraDetails.length > 0) {
+                    message += `\n\n額外積分任務：\n${extraDetails.join('\n')}`;
+                }
+                
+                alert(message);
+                
+            } catch (error) {
+                console.error('提交失敗:', error);
+                let errorMessage = '提交失敗，請再試一次';
+                
+                if (error.message) {
+                    errorMessage = error.message;
+                } else if (error.code) {
+                    switch (error.code) {
+                        case 'permission-denied':
+                            errorMessage = '權限不足，請檢查 Firebase 安全規則設定';
+                            break;
+                        case 'unavailable':
+                            errorMessage = '網路連線問題，請檢查網路後重試';
+                            break;
+                        case 'quota-exceeded':
+                            errorMessage = '儲存空間已滿，請聯繫管理員';
+                            break;
+                        default:
+                            errorMessage = `系統錯誤：${error.code}`;
+                    }
+                }
+                
+                alert(errorMessage);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+        
+        // 重置表單
+        function resetForm() {
+            document.querySelectorAll('.grade-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            selectedGrade = null;
+            selectedPoints = 0;
+            
+            document.getElementById('routeName').value = '';
+            removePhoto();
+            
+            document.querySelectorAll('.checkbox-item input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+        
+        // 移除照片
+        function removePhoto() {
+            document.getElementById('routePhoto').value = '';
+            document.getElementById('photoPreview').classList.add('hidden');
+            document.getElementById('previewImage').src = '';
+        }
+        
+        // 切換路線記錄顯示
+        function toggleRouteHistory() {
+            const routeHistory = document.getElementById('routeHistory');
+            const leaderboard = document.getElementById('leaderboard');
+            
+            if (routeHistory.style.display === 'none' || routeHistory.style.display === '') {
+                routeHistory.style.display = 'block';
+                leaderboard.style.display = 'none';
+                loadUserRoutes();
+            } else {
+                routeHistory.style.display = 'none';
+            }
+        }
+        
+        // 切換排行榜顯示
+        function toggleLeaderboard() {
+            const routeHistory = document.getElementById('routeHistory');
+            const leaderboard = document.getElementById('leaderboard');
+            
+            if (leaderboard.style.display === 'none' || leaderboard.style.display === '') {
+                leaderboard.style.display = 'block';
+                routeHistory.style.display = 'none';
+                loadLeaderboard();
+            } else {
+                leaderboard.style.display = 'none';
+            }
+        }
+        
+        // 載入使用者路線記錄
+        async function loadUserRoutes() {
+            try {
+                const userDoc = await db.collection('users').doc(currentUser.uid).get();
+                const userData = userDoc.data();
+                const routes = userData.routes || [];
+                
+                const routeList = document.getElementById('routeList');
+                if (routes.length === 0) {
+                    routeList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">還沒有路線記錄</div>';
+                    return;
+                }
+                
+                routeList.innerHTML = routes
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                    .map(route => `
+                        <div class="route-item">
+                            <div class="route-header">
+                                <span class="route-grade">${route.grade}</span>
+                                <span class="route-points">+${route.totalPoints}分</span>
+                            </div>
+                            <div class="route-name">${route.routeName}</div>
+                            <div class="route-time">${new Date(route.timestamp).toLocaleString('zh-TW')}</div>
+                            ${route.extraDetails && route.extraDetails.length > 0 ? 
+                                `<div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                                    額外積分: ${route.extraDetails.join(', ')}
+                                </div>` : ''
+                            }
+                            ${route.photoURL ? 
+                                `<div class="route-photo">
+                                    <img src="${route.photoURL}" alt="路線照片" onclick="openImage('${route.photoURL}')">
+                                </div>` : ''
+                            }
+                        </div>
+                    `).join('');
+            } catch (error) {
+                console.error('載入路線記錄失敗:', error);
+                document.getElementById('routeList').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">載入失敗，請重試</div>';
+            }
+        }
+        
+        // 載入排行榜
+        async function loadLeaderboard() {
+            try {
+                const snapshot = await db.collection('users').orderBy('points', 'desc').get();
+                const users = [];
+                
+                snapshot.forEach(doc => {
+                    const userData = doc.data();
+                    if (userData.points > 0) {
+                        users.push(userData);
+                    }
+                });
+                
+                const memberList = document.getElementById('memberList');
+                if (users.length === 0) {
+                    memberList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">還沒有積分記錄</div>';
+                    return;
+                }
+                
+                memberList.innerHTML = users.map((user, index) => {
+                    const tickets = Math.floor(user.points / POINTS_PER_TICKET);
+                    const isCurrentUser = currentUser && user.email === currentUser.email;
+                    return `
+                        <div class="member-item" style="${isCurrentUser ? 'border-left-color: #FF6B35; background: #fff3cd;' : ''}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div class="member-name">
+                                        ${index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`} 
+                                        ${user.name || '使用者'}
+                                        ${isCurrentUser ? ' (你)' : ''}
+                                    </div>
+                                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+                                        路線數: ${user.routes ? user.routes.length : 0}
+                                    </div>
+                                </div>
+                                <div class="member-stats">
+                                    <div class="member-points">${user.points}分</div>
+                                    <div class="member-tickets">${tickets}券</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('載入排行榜失敗:', error);
+                document.getElementById('memberList').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 20px;">載入失敗，請重試</div>';
+            }
+        }
+        
+        // 開啟圖片檢視
+        function openImage(url) {
+            window.open(url, '_blank');
+        }
+        
+        // 頁面載入時隱藏記錄和排行榜
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('routeHistory').style.display = 'none';
+            document.getElementById('leaderboard').style.display = 'none';
+        });
+        
+    </script>
+</body>
+</html> 
